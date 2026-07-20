@@ -357,6 +357,7 @@ subroutine setupt(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsav
   real(r_kind), parameter :: lapse_error_frac = 0.5 ! inflation factor for obs error when vertically interpolating
   real(r_kind), parameter :: max_delta_z = 300. ! max. vertical mismatch allowed
 
+  print *, 'CSD - set l_closeobs:', l_closeobs
 ! CSD - move this to where the namelists are read in.
   if (i_use_2mt4b>0)  hofx_2m_sfcfile=.false.
 
@@ -474,8 +475,9 @@ subroutine setupt(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsav
      landsfctype =( itype==181 .or. itype==183 .or. itype==187 )
      do l=k+1,nobs
         if (twodvar_regional .or. (hofx_2m_sfcfile .and. landsfctype) ) then
-           duplogic=data(ilat,k) == data(ilat,l) .and.  &
-           data(ilon,k) == data(ilon,l) .and.  &
+           !duplogic=data(ilat,k) == data(ilat,l) .and.  &
+           !data(ilon,k) == data(ilon,l) .and.  &
+           duplogic = data(id,k) == data(id,l) .and. &
            data(ier,k) < r1000 .and. data(ier,l) < r1000 .and. &
            muse(k) .and. muse(l)
          else
