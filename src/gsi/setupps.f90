@@ -182,6 +182,7 @@ subroutine setupps(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsa
   real(r_kind),dimension(nobs):: dup
   real(r_kind),dimension(nsig):: prsltmp
   real(r_kind),dimension(nele,nobs):: data
+  real(r_kind) dk, dl
   real(r_single),allocatable,dimension(:,:)::rdiagbuf
 
   integer(i_kind) ier,ilon,ilat,ipres,ihgt,itemp,id,itime,ikx,iqc,iptrb,ijb,icat
@@ -301,16 +302,17 @@ subroutine setupps(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsa
   dup=one
   do k=1,nobs
      do l=k+1,nobs
-        if(data(ilat,k) == data(ilat,l) .and. &
-           data(ilon,k) == data(ilon,l) .and. &
+        if ( data(id,k) == data(id,l) .and. &
            data(ier,k) < r1000 .and. data(ier,l) < r1000 .and. &
-           muse(k) .and. muse(l))then
-           if(l_closeobs) then
-              if(abs(data(itime,k)-hr_offset)<abs(data(itime,l)-hr_offset)) then
-                  muse(l)=.false.
-              else
-                  muse(k)=.false.
-              endif
+           muse(k) .and. muse(l)) then 
+        if(l_closeobs) then
+           dk = abs(data(itime,k)-hr_offset)
+           dl = abs(data(itime,l)-hr_offset)
+           if (dk < dl .or. (abs(dk-dl) < 1.e-6_r_kind .and. data(itime,k) > data(itime,l))) then
+              muse(l)=.false.     ! k is closer, or tied-but-later -> keep k
+           else
+              muse(k)=.false.     ! keep l
+           endif
            else
               tfact=min(one,abs(data(itime,k)-data(itime,l))/dfact1)
               dup(k)=dup(k)+one-tfact*tfact*(one-dfact)
