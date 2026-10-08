@@ -316,6 +316,9 @@ subroutine setupt(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsav
   logical,dimension(nobs):: luse,muse
   integer(i_kind),dimension(nobs):: ioid ! initial (pre-distribution) obs ID
   logical sfctype, landsfctype
+  logical sfctype_k, sfctype_l, landsfctype_l
+  integer(i_kind) itype_l
+  real(r_kind) dk, dl
   logical iqtflg
   logical aircraftobst
   logical duplogic
@@ -473,14 +476,23 @@ subroutine setupt(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsav
      ikx=nint(data(ikxx,k))
      itype=ictype(ikx)
      landsfctype =( itype==181 .or. itype==183 .or. itype==187 )
+     sfctype_k=(itype>179.and.itype<190).or.(itype>=192.and.itype<=199)
      do l=k+1,nobs
-        if (twodvar_regional .or. (hofx_2m_sfcfile .and. landsfctype) ) then
-           !duplogic=data(ilat,k) == data(ilat,l) .and.  &
-           !data(ilon,k) == data(ilon,l) .and.  &
+        itype_l=ictype(nint(data(ikxx,l)))
+        sfctype_l=(itype_l>179.and.itype_l<190).or.(itype_l>=192.and.itype_l<=199)
+        landsfctype_l =( itype_l==181 .or. itype_l==183 .or. itype_l==187 )
+        if (twodvar_regional) then
            duplogic = data(id,k) == data(id,l) .and. &
            data(ier,k) < r1000 .and. data(ier,l) < r1000 .and. &
            muse(k) .and. muse(l)
-         else
+        else if (sfctype_k .and. sfctype_l) then
+           ! surface obs: match on station id (not lat/lon, ships move),
+           ! separately for land and marine surface types
+           duplogic = data(id,k) == data(id,l) .and. &
+           (landsfctype .eqv. landsfctype_l) .and. &
+           data(ier,k) < r1000 .and. data(ier,l) < r1000 .and. &
+           muse(k) .and. muse(l)
+        else
            duplogic=data(ilat,k) == data(ilat,l) .and.  &
            data(ilon,k) == data(ilon,l) .and.  &
            data(ipres,k) == data(ipres,l) .and. &
@@ -490,10 +502,12 @@ subroutine setupt(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsav
 
         if (duplogic) then
            if(l_closeobs) then
-              if(abs(data(itime,k)-hr_offset)<abs(data(itime,l)-hr_offset)) then
-                  muse(l)=.false.
+              dk = abs(data(itime,k)-hr_offset)
+              dl = abs(data(itime,l)-hr_offset)
+              if (dk < dl .or. (abs(dk-dl) < 1.e-6_r_kind .and. data(itime,k) > data(itime,l))) then
+                 muse(l)=.false.     ! k is closer, or tied-but-later -> keep k
               else
-                  muse(k)=.false.
+                 muse(k)=.false.     ! keep l
               endif
 !              write(*,'(a,2f10.5,2I8,2L10)') 'chech obs time==',data(itime,k)-hr_offset,data(itime,l)-hr_offset,k,l,&
 !                           muse(k),muse(l)
