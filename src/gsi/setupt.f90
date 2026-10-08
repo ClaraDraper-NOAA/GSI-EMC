@@ -767,9 +767,9 @@ subroutine setupt(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diagsav
 !    2m forecast has been read from the sfc guess files
      elseif (landsfctype .and. hofx_2m_sfcfile ) then
 
-!         mask: 0 - sea, 1 - land, 2-ice, >= 3 mixed
-!         for now, use only pure land
-          if (int(data(idomsfc,i)) .NE. 1  ) muse(i) = .false.
+!         mask: 0 - sea, 1 - land, 2-ice, >= 3 mixed (dominant type + 3)
+!         use obs where the dominant (nearest) surface type is land
+          if (mod(int(data(idomsfc,i)),3) /= 1) muse(i) = .false.
 
           call tintrp2a11(ges_t2m,tges2m,dlat,dlon,dtime,hrdifsig,&
             mype,nfldsig)
